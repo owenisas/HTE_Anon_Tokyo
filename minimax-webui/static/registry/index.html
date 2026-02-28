@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provenance Registry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry" class="active">Dashboard</a>
+    <a href="/registry/demo">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <p>Overview of the provenance registry &amp; simulated chain</p>
+    </div>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-value" id="statCompanies">-</div>
+        <div class="stat-label">Companies</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statBlocks">-</div>
+        <div class="stat-label">Chain Blocks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statResponses">-</div>
+        <div class="stat-label">Stored Responses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statChainValid">-</div>
+        <div class="stat-label">Chain Integrity</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>How It Works</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="card" style="background: var(--primary-dim); border-color: rgba(125,211,252,0.2);">
+          <h3 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">&#x1f50d; Layer 1 &mdash; User Level</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            The Chrome extension detects zero-width Unicode watermarks embedded in AI-generated text.
+            Any user can scan web pages for hidden metadata without needing an account.
+          </p>
+        </div>
+        <div class="card" style="background: var(--purple-dim); border-color: rgba(192,132,252,0.2);">
+          <h3 style="font-size: 14px; color: var(--purple); margin-bottom: 8px;">&#x1f3e2; Layer 2 &mdash; Company Level</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Authorized companies receive an ECDSA private key. They watermark responses, sign the hash,
+            and anchor it to the provenance chain. Only valid signatures create new blocks.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Demo Views</h2>
+        <a href="/registry/demo" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">Open Demo &rarr;</a>
+      </div>
+      <p class="text-muted" style="font-size:13px;">
+        Use role-based pages to present the workflow from both perspectives: company operator and end user.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Recent Blocks</h2>
+        <a href="/registry/chain" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">View All &rarr;</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Block</th>
+              <th>Issuer</th>
+              <th>Data Hash</th>
+              <th>Tx Hash</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="recentBlocks">
+            <tr><td colspan="5" class="text-dim">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    async function loadDashboard() {
+      try {
+        const [companies, chain, blocks, responses] = await Promise.all([
+          fetch(API + '/api/registry/companies').then(r => r.json()),
+          fetch(API + '/api/registry/chain/status').then(r => r.json()),
+          fetch(API + '/api/registry/chain/blocks?limit=5').then(r => r.json()),
+          fetch(API + '/api/registry/responses?limit=1').then(r => r.json()),
+        ]);
+
+        document.getElementById('statCompanies').textContent = companies.length;
+        document.getElementById('statBlocks').textContent = chain.length;
+        document.getElementById('statResponses').textContent = responses.total;
+
+        const validEl = document.getElementById('statChainValid');
+        if (chain.valid) {
+          validEl.textContent = '✓';
+          validEl.style.color = 'var(--success)';
+        } else {
+          validEl.textContent = '✗';
+          validEl.style.color = 'var(--danger)';
+        }
+
+        const tbody = document.getElementById('recentBlocks');
+        if (blocks.blocks.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-dim">No blocks yet. Anchor a response to create the first block.</td></tr>';
+        } else {
+          tbody.innerHTML = blocks.blocks.map(b => `
+            <tr>
+              <td><span class="text-primary" style="font-weight:700">#${b.block_num}</span></td>
+              <td>${b.issuer_id}</td>
+              <td class="hash">${b.data_hash.substring(0, 16)}...</td>
+              <td class="hash">${b.tx_hash.substring(0, 16)}...</td>
+              <td class="text-muted" style="font-size:12px">${b.timestamp}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        console.error('Dashboard load error:', e);
+      }
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

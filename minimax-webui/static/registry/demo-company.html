@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company View – Provenance Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo" class="active">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Company Operator View</h1>
+      <p>What an authorized company does before users can verify model outputs.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step active" id="step1">1. Register / Load Keys</div>
+      <div class="step" id="step2">2. Watermark &amp; Sign</div>
+      <div class="step" id="step3">3. Anchor Receipt</div>
+    </div>
+
+    <div class="card" id="panel1">
+      <div class="card-header">
+        <h2>&#x1f3e2; Company Credentials</h2>
+      </div>
+      <div class="form-row-inline">
+        <div>
+          <label>Company Name</label>
+          <input type="text" id="companyName" placeholder="e.g. Acme AI">
+        </div>
+        <div>
+          <label>Admin Secret</label>
+          <input type="password" id="adminSecret" placeholder="dev-admin-secret">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="registerCompany()">Create Company Keypair</button>
+      <div id="companyResult" class="result-box"></div>
+    </div>
+
+    <div class="card" id="panel2">
+      <div class="card-header">
+        <h2>&#x2699;&#xfe0f; Generate Verifiable Output</h2>
+      </div>
+      <div class="form-row-inline">
+        <div>
+          <label>Model Provider</label>
+          <select id="providerSelect">
+            <option value="minimax">MiniMax</option>
+            <option value="bedrock">Bedrock</option>
+          </select>
+        </div>
+        <div>
+          <label>Model</label>
+          <select id="modelSelect"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Prompt</label>
+        <textarea id="promptText" rows="4" placeholder="Write the user prompt to generate an actual model response..."></textarea>
+      </div>
+      <div class="form-row">
+        <label>System Prompt</label>
+        <input type="text" id="systemPrompt" value="You are a helpful assistant." placeholder="System behavior prompt">
+      </div>
+      <button class="btn" id="generateBtn" onclick="generateModelResponse()">Generate Response from Model</button>
+      <div id="generateResult" class="result-box"></div>
+
+      <div class="form-row-inline">
+        <div>
+          <label>Issuer ID</label>
+          <input type="text" id="issuerId" placeholder="100">
+        </div>
+        <div>
+          <label>Private Key</label>
+          <input type="password" id="privateKey" placeholder="0x...">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Model response text</label>
+        <textarea id="rawText" rows="8" placeholder="Paste the model response that your company wants to publish..."></textarea>
+      </div>
+      <button class="btn btn-success" id="anchorBtn" onclick="watermarkSignAnchor()">Watermark, Sign, and Anchor</button>
+      <div id="anchorError" class="result-box"></div>
+    </div>
+
+    <div class="card hidden" id="panel3">
+      <div class="card-header">
+        <h2>&#x2705; Anchored</h2>
+      </div>
+      <div id="receiptBody"></div>
+      <div class="mt-4" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="/registry/demo/user" class="btn btn-primary">Go to User View &rarr;</a>
+        <a href="/registry/chain" class="btn">Open Chain Explorer</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let allModels = { minimax: [], bedrock: [] };
+
+    function setStep(step) {
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('step' + i);
+        el.className = 'step' + (i < step ? ' done' : i === step ? ' active' : '');
+      }
+    }
+
+    function showBox(id, type, html) {
+      const el = document.getElementById(id);
+      el.className = 'result-box visible ' + type;
+      el.innerHTML = html;
+    }
+
+    function normalizePrivateKey(input) {
+      if (!input) return '';
+      let key = String(input).replace(/[\s\u200B-\u200D\uFEFF\u2060-\u2064]/g, '');
+      if (/^[0-9a-fA-F]{64}$/.test(key)) {
+        key = '0x' + key;
+      }
+      return key;
+    }
+
+    function isValidPrivateKeyFormat(key) {
+      return /^0x[0-9a-fA-F]{64}$/.test(key);
+    }
+
+    function populateModels(provider) {
+      const modelSelect = document.getElementById('modelSelect');
+      modelSelect.innerHTML = '';
+      const models = allModels[provider] || [];
+      for (const model of models) {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name;
+        modelSelect.appendChild(option);
+      }
+    }
+
+    async function loadModels() {
+      try {
+        const resp = await fetch(API + '/api/models');
+        const data = await resp.json();
+        allModels = data;
+        populateModels(document.getElementById('providerSelect').value);
+      } catch (e) {
+        showBox('generateResult', 'result-error', `Could not load models: ${e.message}`);
+      }
+    }
+
+    async function generateModelResponse() {
+      const provider = document.getElementById('providerSelect').value;
+      const model = document.getElementById('modelSelect').value;
+      const prompt = document.getElementById('promptText').value.trim();
+      const system = document.getElementById('systemPrompt').value.trim() || 'You are a helpful assistant.';
+
+      if (!model) {
+        showBox('generateResult', 'result-error', 'Select a model first.');
+        return;
+      }
+      if (!prompt) {
+        showBox('generateResult', 'result-error', 'Enter a prompt to generate model output.');
+        return;
+      }
+
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+      try {
+        const resp = await fetch(API + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            provider,
+            messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+            system,
+            watermark: false,
+            stream: false,
+            max_tokens: 1024,
+            temperature: 0.7,
+          }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || data.error) {
+          showBox('generateResult', 'result-error', `<strong>Generation failed:</strong> ${data.error || data.detail || JSON.stringify(data)}`);
+          return;
+        }
+
+        const output = (data.raw_text || data.text || '').trim();
+        if (!output) {
+          showBox('generateResult', 'result-error', 'Model returned an empty response. Try a different prompt/model.');
+          return;
+        }
+
+        document.getElementById('rawText').value = output;
+        const providerLabel = provider === 'bedrock' ? 'Bedrock' : 'MiniMax';
+        const usage = data.usage ? `${data.usage.input_tokens} in / ${data.usage.output_tokens} out` : 'usage unavailable';
+        showBox('generateResult', 'result-success', `Generated with <strong>${providerLabel}</strong> model <span class="mono">${model}</span> (${usage}). Response loaded below.`);
+      } catch (e) {
+        showBox('generateResult', 'result-error', `Generation error: ${e.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Response from Model';
+      }
+    }
+
+    async function registerCompany() {
+      const name = document.getElementById('companyName').value.trim();
+      const adminSecret = document.getElementById('adminSecret').value.trim();
+      if (!name || !adminSecret) {
+        showBox('companyResult', 'result-error', 'Please enter both company name and admin secret.');
+        return;
+      }
+
+      try {
+        const resp = await fetch(API + '/api/registry/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, admin_secret: adminSecret }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showBox('companyResult', 'result-error', `<strong>Registration failed:</strong> ${data.detail || JSON.stringify(data)}`);
+          return;
+        }
+
+        document.getElementById('issuerId').value = data.issuer_id;
+        document.getElementById('privateKey').value = data.private_key;
+
+        showBox(
+          'companyResult',
+          'result-success',
+          `<strong>Company registered:</strong> ${data.name}<br>
+           Issuer ID: <span class="mono">${data.issuer_id}</span><br>
+           Address: <span class="mono">${data.eth_address}</span><br>
+           <span class="text-warn">Store this private key safely. It will not be shown again.</span>`
+        );
+        setStep(2);
+      } catch (e) {
+        showBox('companyResult', 'result-error', `Registration error: ${e.message}`);
+      }
+    }
+
+    async function watermarkSignAnchor() {
+      const issuerId = parseInt(document.getElementById('issuerId').value.trim(), 10);
+      const privateKeyInput = document.getElementById('privateKey');
+      const privateKey = normalizePrivateKey(privateKeyInput.value);
+      const rawText = document.getElementById('rawText').value.trim();
+
+      if (!issuerId || !privateKey || !rawText) {
+        showBox('anchorError', 'result-error', 'Issuer ID, private key, and model response are required.');
+        return;
+      }
+      if (!isValidPrivateKeyFormat(privateKey)) {
+        showBox('anchorError', 'result-error', 'Invalid private key format. Expected 64 hex chars (with or without 0x).');
+        return;
+      }
+      privateKeyInput.value = privateKey;
+
+      const btn = document.getElementById('anchorBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Anchoring...';
+      document.getElementById('anchorError').classList.remove('visible');
+
+      try {
+        const wmResp = await fetch(API + '/api/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: rawText, wm_params: { issuer_id: issuerId } }),
+        });
+        const wmData = await wmResp.json();
+        const watermarkedText = wmData.text;
+
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(watermarkedText));
+        const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const wallet = new ethers.Wallet(privateKey);
+        const signature = await wallet.signMessage(hashHex);
+
+        const anchorResp = await fetch(API + '/api/registry/anchor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: watermarkedText,
+            raw_text: rawText,
+            signature_hex: signature.replace('0x', ''),
+            issuer_id: issuerId,
+            metadata: { demo_role: 'company' },
+          }),
+        });
+        const anchorData = await anchorResp.json();
+
+        if (!anchorResp.ok) {
+          showBox('anchorError', 'result-error', `<strong>Anchor failed:</strong> ${anchorData.detail || JSON.stringify(anchorData)}`);
+          btn.disabled = false;
+          btn.textContent = 'Watermark, Sign, and Anchor';
+          return;
+        }
+
+        localStorage.setItem('demo_latest_watermarked_text', watermarkedText);
+        localStorage.setItem('demo_latest_raw_text', rawText);
+
+        const r = anchorData.chain_receipt;
+        document.getElementById('receiptBody').innerHTML = `
+          <div style="display:grid; grid-template-columns: 140px 1fr; gap:8px 16px; font-size:13px;">
+            <span class="text-dim">Company:</span>
+            <span>${anchorData.verified_signer}</span>
+            <span class="text-dim">Eth Address:</span>
+            <span class="hash">${anchorData.eth_address}</span>
+            <span class="text-dim">SHA-256:</span>
+            <span class="hash">${anchorData.sha256_hash}</span>
+            <span class="text-dim">Block:</span>
+            <span class="text-primary" style="font-weight:700">#${r.block_num}</span>
+            <span class="text-dim">Tx Hash:</span>
+            <span class="hash">${r.tx_hash}</span>
+            <span class="text-dim">Timestamp:</span>
+            <span class="text-muted">${r.timestamp}</span>
+          </div>
+          <div class="mt-4 result-box visible result-info">
+            Watermarked response is saved for demo handoff to the User View.
+          </div>
+        `;
+
+        document.getElementById('panel3').classList.remove('hidden');
+        setStep(3);
+      } catch (e) {
+        showBox('anchorError', 'result-error', `Flow error: ${e.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Watermark, Sign, and Anchor';
+      }
+    }
+
+    document.getElementById('providerSelect').addEventListener('change', (e) => {
+      populateModels(e.target.value);
+    });
+
+    loadModels();
+    setStep(1);
+  </script>
+</body>
+</html>

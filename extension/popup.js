@@ -3,6 +3,12 @@ const modeIcon = document.getElementById("modeIcon");
 const modeDesc = document.getElementById("modeDesc");
 const statusEl = document.getElementById("status");
 
+function canMessageTab(url) {
+  if (!url) return false;
+  const blocked = ["chrome://", "chrome-extension://", "edge://", "about:"];
+  return !blocked.some(prefix => url.startsWith(prefix));
+}
+
 const MODE_INFO = {
   off: {
     icon: "",
@@ -53,10 +59,15 @@ segBtns.forEach(btn => {
       if (saved) updateUI(saved);
     });
 
-    // Reload the active tab so the content script starts fresh
+    // Apply mode in active tab without reloading the page
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab && tab.id && !tab.url.startsWith("chrome://")) {
-      chrome.tabs.reload(tab.id);
+    if (tab && tab.id && canMessageTab(tab.url)) {
+      chrome.tabs.sendMessage(tab.id, { type: "applyMode", mode }, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          return;
+        }
+      });
     }
   });
 });

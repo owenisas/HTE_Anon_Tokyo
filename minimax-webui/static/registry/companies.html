@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Companies – Provenance Registry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo">Demo</a>
+    <a href="/registry/companies" class="active">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Authorized Companies</h1>
+      <p>Manage companies that can embed watermarks and anchor to the chain</p>
+    </div>
+
+    <!-- Create Company -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Register New Company</h2>
+      </div>
+      <div class="form-row">
+        <label>Company Name</label>
+        <input type="text" id="companyName" placeholder="e.g. Acme AI Corp">
+      </div>
+      <div class="form-row">
+        <label>Admin Secret</label>
+        <input type="password" id="adminSecret" placeholder="Registry admin secret">
+      </div>
+      <button class="btn btn-primary" id="createBtn" onclick="createCompany()">
+        &#x1f511; Generate Keypair &amp; Register
+      </button>
+
+      <div id="createResult" class="result-box"></div>
+    </div>
+
+    <!-- Company List -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Registered Companies</h2>
+        <button class="btn" onclick="loadCompanies()" style="font-size: 12px; padding: 6px 12px;">&#x1f504; Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Issuer ID</th>
+              <th>Name</th>
+              <th>Ethereum Address</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="companyList">
+            <tr><td colspan="5" class="text-dim">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    async function createCompany() {
+      const name = document.getElementById('companyName').value.trim();
+      const secret = document.getElementById('adminSecret').value;
+      const resultEl = document.getElementById('createResult');
+
+      if (!name) {
+        resultEl.className = 'result-box visible result-error';
+        resultEl.innerHTML = 'Please enter a company name.';
+        return;
+      }
+
+      document.getElementById('createBtn').disabled = true;
+      document.getElementById('createBtn').innerHTML = '<span class="spinner"></span> Creating...';
+
+      try {
+        const resp = await fetch(API + '/api/registry/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, admin_secret: secret }),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          resultEl.className = 'result-box visible result-error';
+          resultEl.innerHTML = `<strong>Error ${resp.status}:</strong> ${data.detail || JSON.stringify(data)}`;
+        } else {
+          resultEl.className = 'result-box visible result-success';
+          resultEl.innerHTML = `
+            <strong>&#x2705; Company "${data.name}" registered!</strong><br><br>
+            <strong>Issuer ID:</strong> ${data.issuer_id}<br>
+            <strong>Ethereum Address:</strong> <span class="mono">${data.eth_address}</span><br><br>
+            <div class="key-reveal">
+              <strong>Private Key (SAVE THIS NOW):</strong><br>
+              ${data.private_key}
+            </div>
+            <div class="key-warning">
+              &#x26a0;&#xfe0f; This private key will NOT be shown again. Store it securely.
+              The company uses this key to sign watermarked text before anchoring.
+            </div>
+          `;
+          loadCompanies();
+        }
+      } catch (e) {
+        resultEl.className = 'result-box visible result-error';
+        resultEl.innerHTML = `<strong>Network error:</strong> ${e.message}`;
+      }
+
+      document.getElementById('createBtn').disabled = false;
+      document.getElementById('createBtn').innerHTML = '&#x1f511; Generate Keypair &amp; Register';
+    }
+
+    async function loadCompanies() {
+      try {
+        const data = await fetch(API + '/api/registry/companies').then(r => r.json());
+        const tbody = document.getElementById('companyList');
+
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-dim">No companies registered yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.map(c => `
+          <tr>
+            <td><span class="text-primary" style="font-weight:700">${c.issuer_id}</span></td>
+            <td>${c.name}</td>
+            <td class="hash">${c.eth_address}</td>
+            <td><span class="badge ${c.active ? 'badge-active' : 'badge-inactive'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+            <td class="text-muted" style="font-size:12px">${c.created_at}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Load companies error:', e);
+      }
+    }
+
+    loadCompanies();
+  </script>
+</body>
+</html>

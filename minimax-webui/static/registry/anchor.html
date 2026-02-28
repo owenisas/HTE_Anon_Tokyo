@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anchor – Provenance Registry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor" class="active">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Anchor to Chain</h1>
+      <p>Watermark text, sign with your private key, and anchor to the provenance chain</p>
+    </div>
+
+    <!-- Step indicators -->
+    <div class="steps">
+      <div class="step active" id="step1">1. Input Text</div>
+      <div class="step" id="step2">2. Watermark</div>
+      <div class="step" id="step3">3. Sign &amp; Anchor</div>
+      <div class="step" id="step4">4. Receipt</div>
+    </div>
+
+    <!-- Step 1: Input -->
+    <div class="card" id="panel1">
+      <div class="card-header">
+        <h2>&#x1f4dd; Input</h2>
+      </div>
+      <div class="form-row">
+        <label>Raw text (LLM response to watermark)</label>
+        <textarea id="rawText" rows="6" placeholder="Paste the AI-generated text here..."></textarea>
+      </div>
+      <div class="form-row-inline">
+        <div>
+          <label>Issuer ID</label>
+          <input type="text" id="issuerId" placeholder="e.g. 100">
+        </div>
+        <div>
+          <label>Private Key</label>
+          <input type="password" id="privateKey" placeholder="0x...">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnWatermark">
+        Apply Watermark &rarr;
+      </button>
+    </div>
+
+    <!-- Step 2: Watermarked preview -->
+    <div class="card hidden" id="panel2">
+      <div class="card-header">
+        <h2>&#x1f4a7; Watermarked Text</h2>
+      </div>
+      <div class="form-row">
+        <label>Watermarked output (zero-width tags injected)</label>
+        <textarea id="watermarkedText" rows="6" readonly></textarea>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+        <span class="text-muted" style="font-size:13px;">
+          SHA-256: <span id="textHash" class="mono text-primary"></span>
+        </span>
+      </div>
+      <button class="btn btn-success" id="btnSignAnchor">
+        &#x270d;&#xfe0f; Sign &amp; Anchor to Chain &rarr;
+      </button>
+    </div>
+
+    <!-- Step 3: Signing -->
+    <div class="card hidden" id="panel3">
+      <div class="card-header">
+        <h2>&#x1f517; Signing &amp; Anchoring...</h2>
+      </div>
+      <div style="text-align:center; padding:24px;">
+        <div class="spinner" style="width:24px;height:24px;border-width:3px;"></div>
+        <p class="text-muted mt-3">Signing hash with your private key and submitting to the chain...</p>
+      </div>
+    </div>
+
+    <!-- Step 4: Receipt -->
+    <div class="card hidden" id="panel4">
+      <div class="card-header">
+        <h2>&#x2705; Anchored Successfully</h2>
+      </div>
+      <div id="receipt"></div>
+      <div class="mt-4" style="display:flex;gap:12px;">
+        <button class="btn btn-primary" onclick="resetFlow()">Anchor Another</button>
+        <a href="/registry/chain" class="btn">View on Chain &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Error display -->
+    <div id="errorBox" class="result-box result-error"></div>
+  </div>
+
+  <script>
+    const API = '';
+    let _watermarkedText = '';
+    let _rawText = '';
+    let _hash = '';
+
+    function setStep(n) {
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('step' + i).className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+        document.getElementById('panel' + i).classList.toggle('hidden', i !== n);
+      }
+      document.getElementById('errorBox').classList.remove('visible');
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorBox');
+      el.className = 'result-box visible result-error';
+      el.innerHTML = msg;
+    }
+
+    function normalizePrivateKey(input) {
+      if (!input) return '';
+      let key = String(input).replace(/[\s\u200B-\u200D\uFEFF\u2060-\u2064]/g, '');
+      if (/^[0-9a-fA-F]{64}$/.test(key)) {
+        key = '0x' + key;
+      }
+      return key;
+    }
+
+    function isValidPrivateKeyFormat(key) {
+      return /^0x[0-9a-fA-F]{64}$/.test(key);
+    }
+
+    async function doWatermark() {
+      _rawText = document.getElementById('rawText').value.trim();
+      if (!_rawText) { showError('Please enter some text.'); return; }
+
+      const issuerId = parseInt(document.getElementById('issuerId').value);
+      if (!issuerId) { showError('Please enter an issuer ID.'); return; }
+
+      try {
+        const resp = await fetch(API + '/api/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: _rawText,
+            wm_params: { issuer_id: issuerId }
+          }),
+        });
+        const data = await resp.json();
+        _watermarkedText = data.text;
+
+        // Compute SHA-256 client-side
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(_watermarkedText));
+        _hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        document.getElementById('watermarkedText').value = _watermarkedText;
+        document.getElementById('textHash').textContent = _hash;
+        setStep(2);
+      } catch (e) {
+        showError('Watermark failed: ' + e.message);
+      }
+    }
+
+    async function doSignAndAnchor() {
+      const anchorBtn = document.getElementById('btnSignAnchor');
+      const privKeyInput = document.getElementById('privateKey');
+      const privKey = normalizePrivateKey(privKeyInput.value);
+      const issuerId = parseInt(document.getElementById('issuerId').value);
+
+      if (!privKey) { showError('Please enter your private key.'); return; }
+      if (!isValidPrivateKeyFormat(privKey)) {
+        showError('Invalid private key format. Expected 64 hex chars (with or without 0x).');
+        return;
+      }
+      privKeyInput.value = privKey;
+      if (!issuerId) { showError('Please enter a valid issuer ID.'); return; }
+      if (!window.ethers) { showError('Signing library failed to load. Refresh the page and try again.'); return; }
+      if (!_watermarkedText || !_hash) {
+        showError('Please click "Apply Watermark" first before signing.');
+        setStep(1);
+        return;
+      }
+
+      anchorBtn.disabled = true;
+      anchorBtn.innerHTML = '<span class="spinner"></span> Signing &amp; Anchoring...';
+
+      setStep(3);
+
+      try {
+        // Sign the hash with ethers.js
+        const wallet = new ethers.Wallet(privKey);
+        const signature = await wallet.signMessage(_hash);
+
+        // Submit to anchor endpoint
+        const resp = await fetch(API + '/api/registry/anchor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: _watermarkedText,
+            raw_text: _rawText,
+            signature_hex: signature.replace('0x', ''),
+            issuer_id: issuerId,
+            metadata: {}
+          }),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          setStep(2);
+          showError(`<strong>Anchor failed (${resp.status}):</strong> ${data.detail || JSON.stringify(data)}`);
+          anchorBtn.disabled = false;
+          anchorBtn.innerHTML = '&#x270d;&#xfe0f; Sign &amp; Anchor to Chain &rarr;';
+          return;
+        }
+
+        // Show receipt
+        const r = data.chain_receipt;
+        document.getElementById('receipt').innerHTML = `
+          <div style="display:grid; grid-template-columns: 140px 1fr; gap:8px 16px; font-size:13px;">
+            <span class="text-dim">Signer:</span>
+            <span>${data.verified_signer} <span class="mono text-muted">(${data.eth_address})</span></span>
+
+            <span class="text-dim">SHA-256:</span>
+            <span class="hash">${data.sha256_hash}</span>
+
+            <span class="text-dim">Block:</span>
+            <span class="text-primary" style="font-weight:700">#${r.block_num}</span>
+
+            <span class="text-dim">Tx Hash:</span>
+            <span class="hash">${r.tx_hash}</span>
+
+            <span class="text-dim">Timestamp:</span>
+            <span class="text-muted">${r.timestamp}</span>
+          </div>
+        `;
+        setStep(4);
+      } catch (e) {
+        setStep(2);
+        showError('Sign/anchor error: ' + e.message);
+      } finally {
+        anchorBtn.disabled = false;
+        anchorBtn.innerHTML = '&#x270d;&#xfe0f; Sign &amp; Anchor to Chain &rarr;';
+      }
+    }
+
+    function resetFlow() {
+      document.getElementById('rawText').value = '';
+      document.getElementById('watermarkedText').value = '';
+      document.getElementById('textHash').textContent = '';
+      _watermarkedText = '';
+      _rawText = '';
+      _hash = '';
+      setStep(1);
+    }
+
+    async function ensureEthersLoaded() {
+      if (window.ethers) return true;
+      return new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/ethers@6.13.4/dist/ethers.umd.min.js';
+        s.onload = () => resolve(!!window.ethers);
+        s.onerror = () => resolve(false);
+        document.head.appendChild(s);
+      });
+    }
+
+    function initPage() {
+      const watermarkBtn = document.getElementById('btnWatermark');
+      const signAnchorBtn = document.getElementById('btnSignAnchor');
+      if (!watermarkBtn || !signAnchorBtn) {
+        showError('Page failed to initialize. Refresh and try again.');
+        return;
+      }
+
+      watermarkBtn.addEventListener('click', doWatermark);
+      signAnchorBtn.addEventListener('click', async () => {
+        const ok = await ensureEthersLoaded();
+        if (!ok) {
+          showError('Signing library failed to load (CDN blocked). Please retry on a stable network.');
+          return;
+        }
+        await doSignAndAnchor();
+      });
+      setStep(1);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPage);
+    } else {
+      initPage();
+    }
+  </script>
+</body>
+</html>
