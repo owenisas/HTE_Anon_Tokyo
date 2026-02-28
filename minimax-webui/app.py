@@ -44,6 +44,7 @@ from registry.db import (
     list_companies,
 )
 
+load_dotenv(Path(__file__).resolve().parent / ".env")
 load_dotenv()
 
 app = FastAPI(title="MiniMax + Bedrock Watermark Lab")
