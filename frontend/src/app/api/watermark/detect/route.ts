@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Python backend watermark detection service
-    const response = await fetch(`${WATERMARK_API_URL}/api/watermark/detect`, {
+    const backendUrl = `${WATERMARK_API_URL}/api/watermark/detect`;
+    console.log("Calling backend URL:", backendUrl);
+    
+    const response = await fetch(backendUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Watermark detection error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: String(error) },
       { status: 500 }
     );
   }

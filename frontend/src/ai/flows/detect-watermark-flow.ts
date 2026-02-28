@@ -1,32 +1,34 @@
-'use server';
 /**
- * @fileOverview A Genkit flow for detecting hidden text watermarks.
+ * @fileOverview Client-side wrapper for detecting watermarks via API.
  *
- * This flow now uses the professional invisible-text-watermark library via the backend API
- * instead of relying on LLM-based detection. This provides:
- * - Deterministic detection using structural analysis
- * - CRC8 integrity checking of watermark payloads
- * - Extracted metadata (issuer_id, model_id, key_id, etc)
+ * This module calls the next.js API route to detect watermarks.
+ * - Calls POST /api/watermark/detect to backend service
+ * - Returns confidence score and metadata extraction
+ * - Uses zero-width Unicode character analysis
+ * - Includes CRC8 integrity verification
  *
- * - detectWatermark - A function that detects hidden watermarks in text.
- * - DetectWatermarkInput - The input type for the detectWatermark function.
- * - DetectWatermarkOutput - The return type for the detectWatermark function.
+ * Functions:
+ * - detectWatermark - Detects hidden watermarks in text
+ * - DetectWatermarkInput - Input type
+ * - DetectWatermarkOutput - Return type
  */
 
-import {z} from 'genkit';
+export interface DetectWatermarkInput {
+  text: string;
+}
 
-const DetectWatermarkInputSchema = z.object({
-  text: z.string().describe('The text to analyze for hidden watermarks.'),
-});
-export type DetectWatermarkInput = z.infer<typeof DetectWatermarkInputSchema>;
+export interface DetectWatermarkOutput {
+  isWatermarked: boolean;
+  confidenceScore: number;
+  message: string;
+}
 
-const DetectWatermarkOutputSchema = z.object({
-  isWatermarked: z.boolean().describe('Whether a hidden watermark was detected.'),
-  confidenceScore: z.number().min(0).max(100).describe('The confidence score (0-100).'),
-  message: z.string().describe('A detailed message about the detection results.'),
-});
-export type DetectWatermarkOutput = z.infer<typeof DetectWatermarkOutputSchema>;
-
+/**
+ * Detects if text contains an invisible watermark
+ * @param input - Input object containing the text to analyze
+ * @returns Object with detection result and confidence score
+ * @throws Error if detection fails
+ */
 export async function detectWatermark(
   input: DetectWatermarkInput
 ): Promise<DetectWatermarkOutput> {

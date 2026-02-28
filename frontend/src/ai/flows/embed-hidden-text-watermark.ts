@@ -1,38 +1,31 @@
-'use server';
 /**
- * @fileOverview A Genkit flow for embedding a hidden, imperceptible watermark into text.
+ * @fileOverview Client-side wrapper for embedding watermarks via API.
  *
- * This flow now uses the professional invisible-text-watermark library via the backend API
- * instead of relying on LLM-based watermarking. This provides:
- * - Cryptographically secure watermarks
- * - Structured metadata embedding with CRC8 integrity checking
- * - Zero-width Unicode character encoding
+ * This module calls the next.js API route to embed watermarks.
+ * - Calls POST /api/watermark/embed to backend service
+ * - Uses zero-width Unicode character encoding
+ * - Includes CRC8 integrity checking
  *
- * - embedHiddenTextWatermark - A function that embeds a hidden watermark into text.
- * - EmbedHiddenTextWatermarkInput - The input type for the embedHiddenTextWatermark function.
- * - EmbedHiddenTextWatermarkOutput - The return type for the embedHiddenTextWatermark function.
+ * Functions:
+ * - embedHiddenTextWatermark - Embeds hidden watermark into text
+ * - EmbedHiddenTextWatermarkInput - Input type
+ * - EmbedHiddenTextWatermarkOutput - Return type
  */
 
-import {z} from 'genkit';
+export interface EmbedHiddenTextWatermarkInput {
+  originalText: string;
+}
 
-const EmbedHiddenTextWatermarkInputSchema = z.object({
-  originalText: z
-    .string()
-    .describe('The original text into which a hidden watermark will be embedded.'),
-});
-export type EmbedHiddenTextWatermarkInput = z.infer<
-  typeof EmbedHiddenTextWatermarkInputSchema
->;
+export interface EmbedHiddenTextWatermarkOutput {
+  watermarkedText: string;
+}
 
-const EmbedHiddenTextWatermarkOutputSchema = z.object({
-  watermarkedText: z
-    .string()
-    .describe('The text with an imperceptible, hidden watermark embedded.'),
-});
-export type EmbedHiddenTextWatermarkOutput = z.infer<
-  typeof EmbedHiddenTextWatermarkOutputSchema
->;
-
+/**
+ * Embeds an invisible watermark into the provided text
+ * @param input - Input object containing the original text
+ * @returns Object with watermarked text
+ * @throws Error if watermarking fails
+ */
 export async function embedHiddenTextWatermark(
   input: EmbedHiddenTextWatermarkInput
 ): Promise<EmbedHiddenTextWatermarkOutput> {
