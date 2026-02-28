@@ -3,11 +3,22 @@
 /**
  * WatermarkTool Component
  * 
- * Main interactive component providing:
- * - Text input for watermarking and detection
- * - Watermark embedding & detection functionality
- * - Result display with toggle tabs
- * - Demo text loading and clipboard copy
+ * 主交互组件，提供以下功能:
+ * - 文本输入框: 用户输入需要保护的文本或进行水印检测
+ * - 保护功能: 点击 "Protect" 按钮将隐形水印嵌入文本
+ * - 验证功能: 点击 "Verify AI Rate" 按钮检测文本是否包含水印
+ * - 结果显示: 分为两个选项卡
+ *   1. "Security Output" - 显示添加水印后的文本（可复制）
+ *   2. "Verification Analytics" - 显示水印检测结果和置信度
+ * - 载入演示文本: 提供示例文本以便快速测试
+ * - 重置功能: 清除所有输入和结果
+ * 
+ * 状态管理:
+ * - inputText: 用户输入的原始文本
+ * - outputItems: 嵌入水印后的文本和时间戳
+ * - detectionResult: 水印检测的结果包括置信度评分
+ * - isCopied: 标记是否已复制到剪贴板（用于显示反馈）
+ * - isPending: 标记异步操作是否在进行中（显示加载状态）
  */
 
 import React, { useState, useTransition } from "react";
@@ -22,6 +33,7 @@ import { detectWatermark } from "@/ai/flows/detect-watermark-flow";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
+// 演示文本列表 - 用户可以快速加载这些文本进行测试
 const DEMO_TEXTS = [
   "In the world of professional content creation, the risk of unauthorized distribution is constant. Using AquaMark allows creators to maintain an invisible trace of ownership within their documents without distracting the reader or compromising the aesthetic of the typography.",
   "Sensitive internal communications require an additional layer of security. By watermarking internal reports, organizations can trace the source of potential leaks back to the specific version shared with an individual, even if the text is copied manually into a new document.",
@@ -128,12 +140,10 @@ export function WatermarkTool() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-      {/* Left Column: Input and Actions */}
       <Card className={cn(
         "bg-card/30 border-white/5 relative overflow-hidden group transition-all duration-500",
         isPending && "watermark-glow"
       )}>
-        {/* Loading Overlay */}
         {isPending && (
           <div className="absolute inset-0 z-10 bg-background/40 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center pointer-events-none overflow-hidden">
             <div className="absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-accent/20 to-transparent animate-scan"></div>
@@ -200,7 +210,6 @@ export function WatermarkTool() {
         </CardContent>
       </Card>
 
-      {/* Right Column: Output / Detection Results */}
       <div className="space-y-6">
         <Tabs defaultValue="results" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-card/50 border border-white/5">

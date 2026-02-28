@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ZW Char Detection Test</title>
+  <style>
+    body { font-family: system-ui; max-width: 600px; margin: 40px auto; line-height: 1.8; }
+    h1 { color: #333; }
+    .test { background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 12px 0; }
+    code { background: #e0e0e0; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Zero-Width Character Test Page</h1>
+
+  <div class="test">
+    <p><strong>Test 1 — Scattered ZW chars:</strong></p>
+    <p>This&#x200B;sentence&#x200C;has&#x200B;zero&#x200C;width&#x200B;chars&#x200C;between&#x200B;words.</p>
+  </div>
+
+  <div class="test">
+    <p><strong>Test 2 — Full watermark tag (66 invisible chars):</strong></p>
+    <p>Before the tag.&#x2063;&#x200B;&#x200C;&#x200B;&#x200C;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x200B;&#x2064;After the tag.</p>
+  </div>
+
+  <div class="test">
+    <p><strong>Test 3 — Clean paragraph (no ZW chars):</strong></p>
+    <p>This is a normal paragraph with no hidden characters at all.</p>
+  </div>
+
+  <div class="test">
+    <p><strong>Test 4 — Other invisible chars:</strong></p>
+    <p>Word&#xFEFF;joiner&#x2060;here&#x200D;and&#x200E;there.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+name: Deploy MiniMax WebUI to Lambda
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'minimax-webui/**'
+      - 'invisible-text-watermark/src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Package Lambda
+        run: |
+          mkdir -p /tmp/lambda-pkg
+          pip install -t /tmp/lambda-pkg fastapi mangum anthropic python-dotenv boto3 -q
+          cp -R invisible-text-watermark/src/invisible_text_watermark /tmp/lambda-pkg/
+          cp minimax-webui/app.py /tmp/lambda-pkg/
+          cp minimax-webui/lambda_handler.py /tmp/lambda-pkg/
+          cp -R minimax-webui/static /tmp/lambda-pkg/
+          cd /tmp/lambda-pkg && zip -qr /tmp/minimax-webui.zip .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name minimax-webui \
+            --zip-file fileb:///tmp/minimax-webui.zip \
+            --region us-east-1
+          aws lambda wait function-updated --function-name minimax-webui --region us-east-1
+          echo "Deployed to: $(aws lambda get-function-url-config --function-name minimax-webui --query 'FunctionUrl' --output text --region us-east-1)"
