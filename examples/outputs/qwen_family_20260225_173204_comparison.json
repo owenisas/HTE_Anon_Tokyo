@@ -1,0 +1,34 @@
+{
+  "prompt": "tell me more about qwen model family",
+  "model": "qwen35a3b",
+  "watermarked": {
+    "http": 200,
+    "zero_width_count": 66,
+    "verify_http": 200,
+    "verify_status": "verified",
+    "verify_payload": {
+      "schema_version": 1,
+      "issuer_id": 1,
+      "model_id": 0,
+      "model_version_id": 0,
+      "key_id": 1
+    },
+    "visible_text": "Okay, the user is asking about the Qwen model family. Let me start by recalling what I know. Qwen is a series of large language models developed by Tongyi Lab. There are different versions like Qwen1, Qwen2, Qwen3, and specialized variants such as Qwen-Audio, Qwen-VL, etc.\n\nFirst, I should outline the main versions and their improvements. Each iteration usually has better performance, more parameters, or enhanced capabilities. For example, Qwen3 might have a larger context window or better reasoning skills compared to earlier versions.\n\nI need to mention key features like multilingual support, code generation, long-context understanding, and integration with other tools. The user might be interested in knowing how these models differ from each other and what makes the latest version stand out.\n\nAlso, it's important to highlight specific applications or use cases where Qwen models excel, such as customer service, content creation, data analysis, etc. Maybe mention any recent updates or new features in the latest version, like Qwen3.5 if"
+  },
+  "not_watermarked": {
+    "http": 200,
+    "zero_width_count": 0,
+    "verify_http": 200,
+    "verify_status": "none",
+    "verify_payload": null,
+    "visible_text": "Okay, the user is asking about the Qwen model family. Let me start by recalling what I know. Qwen is a series of large language models developed by Tongyi Lab. There are different versions like Qwen1, Qwen2, Qwen3, and specialized variants such as Qwen-Audio, Qwen-VL, etc.\n\nFirst, I should outline the main versions and their improvements. Each iteration usually has better performance, more parameters, or enhanced capabilities. For example, Qwen3 might have a larger context window or better reasoning skills compared to earlier versions.\n\nI need to mention key features like multilingual support, code generation, long-context understanding, and integration with other tools. The user might be interested in knowing how these models differ from each other and what makes the latest version stand out.\n\nAlso, it's important to highlight specific applications or use cases where Qwen models excel, such as customer service, content creation, data analysis, etc. Maybe mention any recent updates or new features in the latest version, like Qwen3.5 if"
+  },
+  "visible_text_equal": true,
+  "files": {
+    "watermarked_raw": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/qwen_family_20260225_173204_watermarked_raw.txt",
+    "watermarked_visible": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/qwen_family_20260225_173204_watermarked_visible.txt",
+    "not_watermarked_raw": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/qwen_family_20260225_173204_not_watermarked_raw.txt",
+    "not_watermarked_visible": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/qwen_family_20260225_173204_not_watermarked_visible.txt",
+    "comparison": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/qwen_family_20260225_173204_comparison.json"
+  }
+}

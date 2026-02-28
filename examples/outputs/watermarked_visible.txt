@@ -1,0 +1,8 @@
+Thinking Process:
+
+1.  **Analyze the Request:**
+    *   Topic: Ocean currents.
+    *   Constraint: Reply in exactly one short sentence.
+
+2.  **Determine Key Information:** What is a concise, accurate statement about ocean currents?
+    *   They move water

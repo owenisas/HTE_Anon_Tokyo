@@ -1,0 +1,30 @@
+{
+  "model": "qwen35a3b",
+  "prompt": "Reply in exactly one short sentence about ocean currents.",
+  "watermarked": {
+    "zero_width_count": 66,
+    "verify_status": "verified",
+    "verify_payload": {
+      "schema_version": 1,
+      "issuer_id": 1,
+      "model_id": 0,
+      "model_version_id": 0,
+      "key_id": 1
+    },
+    "visible_text": "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   Topic: Ocean currents.\n    *   Constraint: Reply in exactly one short sentence.\n\n2.  **Determine Key Information:** What is a concise, accurate statement about ocean currents?\n    *   They move water"
+  },
+  "not_watermarked": {
+    "zero_width_count": 0,
+    "verify_status": "none",
+    "verify_payload": null,
+    "visible_text": "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   Topic: Ocean currents.\n    *   Constraint: Reply in exactly one short sentence.\n\n2.  **Determine Key Information:** What is a concise, accurate statement about ocean currents?\n    *   They move water"
+  },
+  "visible_text_equal": true,
+  "files": {
+    "watermarked_raw": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/watermarked_raw.txt",
+    "watermarked_visible": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/watermarked_visible.txt",
+    "watermarked_marker_view": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/watermarked_marker_view.txt",
+    "not_watermarked_raw": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/not_watermarked_raw.txt",
+    "not_watermarked_visible": "/Users/user/Documents/random-AI-Projects/watermark-llamacpp/examples/outputs/not_watermarked_visible.txt"
+  }
+}

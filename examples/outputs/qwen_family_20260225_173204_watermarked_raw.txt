@@ -1,0 +1,7 @@
+Okay, the user is asking about the Qwen model family. Let me start by recalling what I know. Qwen is a series of large language models developed by Tongyi Lab. There are different versions like Qwen1, Qwen2, Qwen3, and specialized variants such as Qwen-Audio, Qwen-VL, etc.
+
+First, I should outline the main versions and their improvements. Each iteration usually has better performance, more parameters, or enhanced capabilities. For example, Qwen3 might have a larger context window or better reasoning skills compared to earlier versions.
+
+I need to mention key features like multilingual support, code generation, long-context understanding, and integration with other tools. The user might be interested in knowing how these models differ from each other and what makes the latest version stand out.
+
+Also, it's important to highlight specific applications or use cases where Qwen models excel, such as customer service, content creation, data analysis, etc. Maybe mention any recent updates or new features in the latest version, like Qwen3.5 ⁣​​​‌​​​​​​​​​​​‌​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​‌‌‌‌‌‌‌​‌⁤if
