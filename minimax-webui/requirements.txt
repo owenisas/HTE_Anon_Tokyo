@@ -4,3 +4,5 @@ anthropic
 python-dotenv
 mangum
 boto3
+eth-account>=0.13
+eth-keys>=0.6

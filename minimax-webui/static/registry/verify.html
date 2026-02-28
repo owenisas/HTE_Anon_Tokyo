@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify – Provenance Registry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify" class="active">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Verify Provenance</h1>
+      <p>Paste any text to check if it's been registered on the provenance chain. No account needed.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>&#x1f50e; Check Text</h2>
+      </div>
+      <div class="form-row">
+        <label>Text to verify</label>
+        <textarea id="verifyText" rows="8" placeholder="Paste text here — watermarked or plain..."></textarea>
+      </div>
+      <button class="btn btn-primary" id="verifyBtn" onclick="doVerify()">
+        &#x1f50d; Verify Provenance
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div id="resultCard" class="card hidden">
+      <div class="card-header">
+        <h2 id="resultTitle"></h2>
+        <span id="resultBadge" class="badge"></span>
+      </div>
+      <div id="resultBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    async function doVerify() {
+      const text = document.getElementById('verifyText').value;
+      if (!text.trim()) return;
+
+      const btn = document.getElementById('verifyBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+      const resultCard = document.getElementById('resultCard');
+      resultCard.classList.add('hidden');
+
+      try {
+        const resp = await fetch(API + '/api/registry/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await resp.json();
+
+        resultCard.classList.remove('hidden');
+        const title = document.getElementById('resultTitle');
+        const badge = document.getElementById('resultBadge');
+        const body = document.getElementById('resultBody');
+
+        if (data.verified) {
+          title.textContent = '✅ Provenance Verified';
+          badge.textContent = 'VERIFIED';
+          badge.className = 'badge badge-verified';
+          body.innerHTML = `
+            <div style="display:grid; grid-template-columns: 140px 1fr; gap:8px 16px; font-size:13px;">
+              <span class="text-dim">Company:</span>
+              <span style="font-weight:600">${data.company}</span>
+
+              <span class="text-dim">Issuer ID:</span>
+              <span class="text-primary" style="font-weight:700">${data.issuer_id}</span>
+
+              <span class="text-dim">Eth Address:</span>
+              <span class="hash">${data.eth_address || 'N/A'}</span>
+
+              <span class="text-dim">SHA-256:</span>
+              <span class="hash">${data.sha256_hash}</span>
+
+              <span class="text-dim">Block:</span>
+              <span class="text-primary" style="font-weight:700">#${data.block_num}</span>
+
+              <span class="text-dim">Tx Hash:</span>
+              <span class="hash">${data.tx_hash}</span>
+
+              <span class="text-dim">Timestamp:</span>
+              <span class="text-muted">${data.timestamp}</span>
+            </div>
+
+            ${data.watermark ? `
+              <div class="mt-4" style="padding-top:12px; border-top:1px solid var(--border);">
+                <strong style="font-size:12px; color:var(--text-dim);">WATERMARK TAGS</strong>
+                <div class="mt-2" style="font-size:13px;">
+                  Detected: <span class="${data.watermark.detected ? 'text-success' : 'text-dim'}" style="font-weight:600">
+                    ${data.watermark.detected ? 'Yes' : 'No'}
+                  </span>
+                  &bull; Tags: ${data.watermark.tag_count}
+                  ${data.watermark.payloads && data.watermark.payloads.length > 0 ? `
+                    <div class="mt-2">
+                      ${data.watermark.payloads.map(p => `
+                        <div class="mono" style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                          schema=${p.schema_version} issuer=${p.issuer_id} model=${p.model_id}
+                          ver=${p.model_version_id} key=${p.key_id}
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
+          `;
+        } else {
+          title.textContent = '❌ Not Verified';
+          badge.textContent = 'FAILED';
+          badge.className = 'badge badge-failed';
+          body.innerHTML = `
+            <p style="font-size:14px; margin-bottom:12px;">${data.reason || 'Text not found on the provenance chain.'}</p>
+
+            <div style="display:grid; grid-template-columns: 140px 1fr; gap:8px 16px; font-size:13px;">
+              <span class="text-dim">SHA-256:</span>
+              <span class="hash">${data.sha256_hash}</span>
+            </div>
+
+            ${data.watermark && data.watermark.detected ? `
+              <div class="mt-4 result-box visible result-warn">
+                <strong>&#x26a0;&#xfe0f; Watermark tags detected but text hash not on chain.</strong><br>
+                <span style="font-size:12px;">
+                  This text contains watermark metadata (${data.watermark.tag_count} tag(s)) but may have been
+                  modified after anchoring, or was never anchored.
+                </span>
+              </div>
+            ` : `
+              <div class="mt-4 result-box visible result-info">
+                <strong>&#x1f4a1; No watermark tags found.</strong><br>
+                <span style="font-size:12px;">
+                  This text does not appear to contain zero-width watermark metadata.
+                </span>
+              </div>
+            `}
+          `;
+        }
+      } catch (e) {
+        resultCard.classList.remove('hidden');
+        document.getElementById('resultTitle').textContent = '⚠️ Error';
+        document.getElementById('resultBadge').className = 'badge';
+        document.getElementById('resultBadge').textContent = '';
+        document.getElementById('resultBody').innerHTML = `
+          <p class="text-danger">${e.message}</p>
+        `;
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '&#x1f50d; Verify Provenance';
+    }
+  </script>
+</body>
+</html>

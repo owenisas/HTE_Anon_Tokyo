@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User View – Provenance Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo" class="active">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>End User View</h1>
+      <p>What a normal user does when they receive output from a company model.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>&#x1f4e5; Receive Model Output</h2>
+      </div>
+      <p class="text-muted" style="font-size:13px; margin-bottom: 12px;">
+        Load a recently anchored output from the company demo, or paste your own text.
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap: wrap; margin-bottom: 12px;">
+        <button class="btn" onclick="loadFromCompanyView()">Use Output from Company View</button>
+        <button class="btn" onclick="loadLatestFromServer()">Use Latest Anchored Output</button>
+      </div>
+      <div class="form-row">
+        <label>Text received by the user</label>
+        <textarea id="userText" rows="9" placeholder="Paste text output here..."></textarea>
+      </div>
+      <button class="btn btn-primary" id="verifyBtn" onclick="verifyText()">Verify Provenance</button>
+    </div>
+
+    <div class="card hidden" id="verifyCard">
+      <div class="card-header">
+        <h2 id="verifyTitle"></h2>
+        <span id="verifyBadge" class="badge"></span>
+      </div>
+      <div id="verifyBody"></div>
+      <div class="mt-4" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="/registry/demo/company" class="btn">Back to Company View</a>
+        <a href="/registry/chain" class="btn">Open Chain Explorer</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    function renderNotice(message, type = 'result-info') {
+      const card = document.getElementById('verifyCard');
+      card.classList.remove('hidden');
+      document.getElementById('verifyTitle').textContent = 'Info';
+      document.getElementById('verifyBadge').textContent = '';
+      document.getElementById('verifyBadge').className = 'badge';
+      document.getElementById('verifyBody').innerHTML = `<div class="result-box visible ${type}">${message}</div>`;
+    }
+
+    async function loadFromCompanyView() {
+      const text = localStorage.getItem('demo_latest_watermarked_text');
+      if (!text) {
+        renderNotice('No output found from Company View yet. Anchor one response first.', 'result-warn');
+        return;
+      }
+      document.getElementById('userText').value = text;
+      renderNotice('Loaded output from Company View local session.', 'result-success');
+    }
+
+    async function loadLatestFromServer() {
+      try {
+        const resp = await fetch(API + '/api/registry/demo/latest-response');
+        const data = await resp.json();
+        if (!resp.ok) {
+          renderNotice(data.detail || 'No anchored output available yet.', 'result-warn');
+          return;
+        }
+        document.getElementById('userText').value = data.watermarked_text || '';
+        renderNotice(`Loaded latest anchored output from ${data.company_name || 'issuer ' + data.issuer_id}.`, 'result-success');
+      } catch (e) {
+        renderNotice(`Failed to load latest output: ${e.message}`, 'result-error');
+      }
+    }
+
+    async function verifyText() {
+      const text = document.getElementById('userText').value.trim();
+      if (!text) {
+        renderNotice('Please paste or load text before verifying.', 'result-warn');
+        return;
+      }
+
+      const btn = document.getElementById('verifyBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+      try {
+        const resp = await fetch(API + '/api/registry/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await resp.json();
+
+        const card = document.getElementById('verifyCard');
+        card.classList.remove('hidden');
+
+        const title = document.getElementById('verifyTitle');
+        const badge = document.getElementById('verifyBadge');
+        const body = document.getElementById('verifyBody');
+
+        if (data.verified) {
+          title.textContent = '✅ Verified Provenance';
+          badge.textContent = 'VERIFIED';
+          badge.className = 'badge badge-verified';
+          body.innerHTML = `
+            <div style="display:grid; grid-template-columns: 140px 1fr; gap:8px 16px; font-size:13px;">
+              <span class="text-dim">Company:</span>
+              <span style="font-weight:600">${data.company}</span>
+              <span class="text-dim">Issuer:</span>
+              <span class="text-primary" style="font-weight:700">${data.issuer_id}</span>
+              <span class="text-dim">Hash:</span>
+              <span class="hash">${data.sha256_hash}</span>
+              <span class="text-dim">Block:</span>
+              <span class="text-primary" style="font-weight:700">#${data.block_num}</span>
+              <span class="text-dim">Tx:</span>
+              <span class="hash">${data.tx_hash}</span>
+              <span class="text-dim">Time:</span>
+              <span class="text-muted">${data.timestamp}</span>
+            </div>
+            <div class="mt-4 result-box visible result-success">
+              This output is cryptographically signed by an authorized company and anchored on-chain.
+            </div>
+          `;
+        } else {
+          title.textContent = '❌ Verification Failed';
+          badge.textContent = 'FAILED';
+          badge.className = 'badge badge-failed';
+          body.innerHTML = `
+            <div class="result-box visible result-error">
+              ${data.reason || 'Text not found on the provenance chain.'}
+            </div>
+            <div class="mt-3" style="display:grid; grid-template-columns: 140px 1fr; gap:8px 16px; font-size:13px;">
+              <span class="text-dim">Hash:</span>
+              <span class="hash">${data.sha256_hash}</span>
+              <span class="text-dim">Watermark Detected:</span>
+              <span>${data.watermark && data.watermark.detected ? 'Yes' : 'No'}</span>
+            </div>
+          `;
+        }
+      } catch (e) {
+        renderNotice(`Verification error: ${e.message}`, 'result-error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify Provenance';
+      }
+    }
+  </script>
+</body>
+</html>

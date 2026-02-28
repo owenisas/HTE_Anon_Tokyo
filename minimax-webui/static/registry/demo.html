@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Demo – Provenance Registry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo" class="active">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Demo: Two Role Views</h1>
+      <p>Choose a role to demo the provenance workflow from that perspective.</p>
+    </div>
+
+    <div class="role-grid">
+      <div class="card role-card">
+        <div class="role-pill role-pill-company">Company</div>
+        <h2 style="margin: 10px 0 8px; font-size: 18px;">Company Operator View</h2>
+        <p class="text-muted" style="font-size:13px; margin-bottom: 16px;">
+          Register company credentials, watermark output, sign with private key, and anchor to chain.
+        </p>
+        <a href="/registry/demo/company" class="btn btn-primary">Open Company View &rarr;</a>
+      </div>
+
+      <div class="card role-card">
+        <div class="role-pill role-pill-user">User</div>
+        <h2 style="margin: 10px 0 8px; font-size: 18px;">End User View</h2>
+        <p class="text-muted" style="font-size:13px; margin-bottom: 16px;">
+          Simulate a user receiving model output and verify provenance without private keys.
+        </p>
+        <a href="/registry/demo/user" class="btn btn-primary">Open User View &rarr;</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Recommended Demo Order</h2>
+      </div>
+      <ol class="text-muted" style="padding-left: 18px; font-size: 13px; line-height: 1.9;">
+        <li>Open <strong>Company View</strong> and anchor one response.</li>
+        <li>Open <strong>User View</strong>, load latest output, and verify.</li>
+        <li>Optionally open <a href="/registry/chain" class="text-primary" style="text-decoration:none;">Chain Explorer</a> to show the anchored block.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

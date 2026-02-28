@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chain Explorer – Provenance Registry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/registry/style.css">
+  <style>
+    .chain-visual {
+      position: relative;
+      padding-left: 40px;
+    }
+    .chain-visual::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .block-node {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+    .block-node:hover {
+      border-color: var(--primary);
+    }
+    .block-node::before {
+      content: '';
+      position: absolute;
+      left: -33px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .block-node.genesis::before {
+      background: var(--success);
+      box-shadow: 0 0 0 2px var(--success);
+    }
+    .block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .block-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--primary);
+    }
+    .block-time {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .block-grid {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 4px 12px;
+      font-size: 12px;
+    }
+    .block-label {
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.4px;
+      padding-top: 2px;
+    }
+    .block-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+    .link-arrow {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin: -8px 0 8px 0;
+      padding-left: 8px;
+    }
+    .link-arrow .arrow {
+      color: var(--primary);
+      font-size: 14px;
+    }
+    .integrity-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+    .integrity-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .integrity-dot.valid { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .integrity-dot.invalid { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/registry" class="nav-brand">&#x1f6e1;&#xfe0f; Provenance Registry</a>
+    <a href="/registry">Dashboard</a>
+    <a href="/registry/demo">Demo</a>
+    <a href="/registry/companies">Companies</a>
+    <a href="/registry/anchor">Anchor</a>
+    <a href="/registry/verify">Verify</a>
+    <a href="/registry/chain" class="active">Chain</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Chain Explorer</h1>
+      <p>Visual representation of the simulated provenance hash-chain</p>
+    </div>
+
+    <!-- Chain integrity -->
+    <div class="integrity-bar" id="integrityBar">
+      <div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>
+      <span class="text-muted" style="font-size:13px;">Checking chain integrity...</span>
+    </div>
+
+    <!-- Chain visualization -->
+    <div id="chainContainer">
+      <div class="text-dim" style="text-align:center; padding:40px;">Loading chain blocks...</div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" style="display:flex; justify-content:center; gap:8px; margin-top:16px;"></div>
+  </div>
+
+  <script>
+    const API = '';
+    let currentPage = 0;
+    const PAGE_SIZE = 20;
+
+    async function loadChain(offset = 0) {
+      currentPage = offset;
+
+      try {
+        const [chainStatus, blocksResp] = await Promise.all([
+          fetch(API + '/api/registry/chain/status').then(r => r.json()),
+          fetch(API + `/api/registry/chain/blocks?limit=${PAGE_SIZE}&offset=${offset}`).then(r => r.json()),
+        ]);
+
+        // Integrity bar
+        const bar = document.getElementById('integrityBar');
+        if (chainStatus.valid) {
+          bar.innerHTML = `
+            <div class="integrity-dot valid"></div>
+            <span style="font-size:13px; color:var(--success); font-weight:600;">Chain Valid</span>
+            <span class="text-muted" style="font-size:12px;">${chainStatus.message}</span>
+          `;
+        } else {
+          bar.innerHTML = `
+            <div class="integrity-dot invalid"></div>
+            <span style="font-size:13px; color:var(--danger); font-weight:600;">Chain Invalid</span>
+            <span class="text-muted" style="font-size:12px;">${chainStatus.message}</span>
+          `;
+        }
+
+        // Blocks
+        const container = document.getElementById('chainContainer');
+        const blocks = blocksResp.blocks;
+
+        if (blocks.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center; padding:60px 20px;">
+              <div style="font-size:48px; margin-bottom:12px;">⛓️</div>
+              <h3 style="color:var(--text-muted); margin-bottom:8px;">No blocks yet</h3>
+              <p class="text-dim" style="font-size:13px;">
+                Anchor a watermarked response to create the first block.
+              </p>
+              <a href="/registry/anchor" class="btn btn-primary mt-4">Go to Anchor &rarr;</a>
+            </div>
+          `;
+          return;
+        }
+
+        // Build chain visual (blocks are newest-first, reverse for display)
+        const sorted = [...blocks].reverse();
+        let html = '<div class="chain-visual">';
+
+        sorted.forEach((block, i) => {
+          const isGenesis = block.prev_hash === '0'.repeat(64);
+          html += `
+            <div class="block-node ${isGenesis ? 'genesis' : ''}">
+              <div class="block-header">
+                <span class="block-title">${isGenesis ? '🌱 Genesis · ' : ''}Block #${block.block_num}</span>
+                <span class="block-time">${block.timestamp}</span>
+              </div>
+              <div class="block-grid">
+                <span class="block-label">Tx Hash</span>
+                <span class="block-val">${block.tx_hash}</span>
+
+                <span class="block-label">Data Hash</span>
+                <span class="block-val">${block.data_hash}</span>
+
+                <span class="block-label">Prev Hash</span>
+                <span class="block-val">${isGenesis ? '(genesis — 0x000...000)' : block.prev_hash}</span>
+
+                <span class="block-label">Issuer</span>
+                <span class="block-val" style="color:var(--primary);">${block.issuer_id}</span>
+
+                <span class="block-label">Signature</span>
+                <span class="block-val">${block.signature_hex ? block.signature_hex.substring(0, 32) + '...' : 'N/A'}</span>
+              </div>
+            </div>
+          `;
+
+          // Connector arrow between blocks
+          if (i < sorted.length - 1) {
+            html += `
+              <div class="link-arrow">
+                <span class="arrow">↓</span>
+                <span>prev_hash links to tx_hash above</span>
+              </div>
+            `;
+          }
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Pagination
+        const totalPages = Math.ceil(blocksResp.total / PAGE_SIZE);
+        const currentPageNum = Math.floor(offset / PAGE_SIZE);
+        const pagEl = document.getElementById('pagination');
+
+        if (totalPages <= 1) {
+          pagEl.innerHTML = '';
+          return;
+        }
+
+        let pagHtml = '';
+        if (currentPageNum > 0) {
+          pagHtml += `<button class="btn" onclick="loadChain(${(currentPageNum - 1) * PAGE_SIZE})">&larr; Newer</button>`;
+        }
+        pagHtml += `<span class="text-muted" style="padding:8px;font-size:13px;">Page ${currentPageNum + 1} of ${totalPages}</span>`;
+        if (currentPageNum < totalPages - 1) {
+          pagHtml += `<button class="btn" onclick="loadChain(${(currentPageNum + 1) * PAGE_SIZE})">Older &rarr;</button>`;
+        }
+        pagEl.innerHTML = pagHtml;
+
+      } catch (e) {
+        document.getElementById('chainContainer').innerHTML = `
+          <div class="result-box visible result-error">Error loading chain: ${e.message}</div>
+        `;
+      }
+    }
+
+    loadChain(0);
+  </script>
+</body>
+</html>
