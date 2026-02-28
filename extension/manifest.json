@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Text Fetcher",
+  "version": "2.0.0",
+  "description": "Detect zero-width watermarks — auto-highlight or scan selected text.",
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,111 @@
+/* ================================================================== */
+/*  Auto-detect — highlight tainted text with background color        */
+/* ================================================================== */
+
+/* Watermark tag found + CRC valid = confirmed AI text */
+.zwm-tainted-watermark {
+  background: rgba(239, 68, 68, 0.25) !important;
+  outline: 2px solid #ef4444 !important;
+  outline-offset: 1px;
+  border-radius: 3px;
+  cursor: help;
+  transition: background 0.2s;
+}
+
+.zwm-tainted-watermark:hover {
+  background: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Watermark tag found but CRC invalid = suspicious */
+.zwm-tainted-suspicious {
+  background: rgba(245, 158, 11, 0.2) !important;
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 1px;
+  border-radius: 3px;
+  cursor: help;
+  transition: background 0.2s;
+}
+
+.zwm-tainted-suspicious:hover {
+  background: rgba(245, 158, 11, 0.35) !important;
+}
+
+/* Zero-width chars present but no structured tag */
+.zwm-tainted {
+  background: rgba(168, 85, 247, 0.18) !important;
+  outline: 2px solid #a855f7 !important;
+  outline-offset: 1px;
+  border-radius: 3px;
+  cursor: help;
+  transition: background 0.2s;
+}
+
+.zwm-tainted:hover {
+  background: rgba(168, 85, 247, 0.32) !important;
+}
+
+/* ================================================================== */
+/*  Selection scan — floating verdict badge                           */
+/* ================================================================== */
+
+#zwm-float {
+  position: fixed;
+  z-index: 2147483647;
+  width: 320px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255,255,255,.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  transform: translateY(8px) scale(.96);
+  transition: opacity .18s, transform .18s;
+  pointer-events: none;
+}
+
+#zwm-float.zwm-float-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.zwm-float-alert {
+  background: rgba(127, 29, 29, .92);
+  border: 1px solid #f87171;
+  color: #fecaca;
+}
+
+.zwm-float-warn {
+  background: rgba(66, 32, 6, .92);
+  border: 1px solid #f59e0b;
+  color: #fde68a;
+}
+
+.zwm-float-clean {
+  background: rgba(5, 46, 22, .92);
+  border: 1px solid #22c55e;
+  color: #bbf7d0;
+}
+
+.zwm-float-header {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.zwm-float-detail {
+  font-size: 12px;
+  opacity: .85;
+  margin-bottom: 4px;
+}
+
+.zwm-float-meta {
+  font-size: 11px;
+  opacity: .55;
+  border-top: 1px solid rgba(255,255,255,.1);
+  padding-top: 6px;
+  margin-top: 4px;
+}
