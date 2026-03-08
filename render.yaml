@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: lmcanvas-openai-proxy
+    runtime: python
+    plan: free
+    rootDir: chat-clients
+    buildCommand: ""
+    startCommand: python3 lmcanvas-openai-proxy.py
+    envVars:
+      - key: LMCANVAS_PROXY_HOST
+        value: 0.0.0.0
+      - key: LMCANVAS_DEFAULT_MODEL
+        value: gpt-5.3
+      - key: LMCANVAS_MODELS
+        value: gpt-5.3,claude-opus-4.6,claude-sonnet-4.6,gemini-2.5-flash
+      - key: PROXY_AUTH_TOKEN
+        generateValue: true
